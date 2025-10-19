@@ -1,0 +1,5 @@
+[core]
+    remote = gcs_storage
+['remote "gcs_storage"']
+    url = gs://mlops-iris-dvc-22f3002972/dvc-store
+    projectname = mlops-iris-22f3002972
