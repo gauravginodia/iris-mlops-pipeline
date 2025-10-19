@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main ]
 
+# Add permissions for GitHub Actions
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   test-and-validate:
     runs-on: ubuntu-latest
@@ -21,58 +27,40 @@ jobs:
         with:
           python-version: '3.10'
       
-      - name: Create virtual environment and install dependencies
+      - name: Setup CML
+        uses: iterative/setup-cml@v2
+      
+      - name: Install dependencies
         run: |
-          python -m venv .venv
-          source .venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements-test.txt
           pip install dvc[gs]
       
       - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
       
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-      
-      - name: Configure DVC and pull data
+      - name: Setup DVC
         run: |
-          source .venv/bin/activate
-          
-          # Create credentials file for DVC
-          echo '${{ secrets.GCP_SA_KEY }}' > gcp-key.json
-          
-          # Configure DVC to use the credentials
-          dvc remote modify gcsremote credentialpath $(pwd)/gcp-key.json
-          
-          # Pull data
-          echo "Running DVC pull..."
-          dvc pull -v
-          
-          echo "✓ DVC pull completed"
+          dvc remote modify gcs_storage projectname ${{ secrets.GCP_PROJECT_ID }}
+          dvc pull data/iris.csv.dvc models/iris_model.joblib.dvc
       
       - name: Run data validation tests
         run: |
-          source .venv/bin/activate
           pytest tests/test_data_validation.py -v --tb=short
       
       - name: Run model evaluation tests
         run: |
-          source .venv/bin/activate
           pytest tests/test_model_evaluation.py -v --tb=short
       
       - name: Generate test coverage report
         run: |
-          source .venv/bin/activate
           pytest tests/ --cov=src --cov-report=term --cov-report=html
       
       - name: Generate model metrics
+        id: metrics
         run: |
-          source .venv/bin/activate
           python -c "
           import pandas as pd
           import joblib
@@ -92,35 +80,47 @@ jobs:
           recall = metrics.recall_score(y_test, predictions, average='weighted')
           f1 = metrics.f1_score(y_test, predictions, average='weighted')
           
-          print(f'Accuracy: {accuracy:.4f}')
-          print(f'Precision: {precision:.4f}')
-          print(f'Recall: {recall:.4f}')
-          print(f'F1 Score: {f1:.4f}')
-          " | tee metrics.txt
+          print(f'- Accuracy: {accuracy:.4f}')
+          print(f'- Precision: {precision:.4f}')
+          print(f'- Recall: {recall:.4f}')
+          print(f'- F1 Score: {f1:.4f}')
+          " > metrics.txt
+          cat metrics.txt
       
-      - name: Generate Pipeline Summary
+      - name: Create CML Report
         if: always()
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "## 🚀 CI/CD Pipeline Report - Main Branch" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## CI/CD Pipeline Report - Main Branch" > report.md
+          echo "" >> report.md
+          echo "### 🧪 Test Results" >> report.md
+          echo "" >> report.md
           
-          echo "### 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          source .venv/bin/activate
-          pytest tests/ --tb=no -q >> $GITHUB_STEP_SUMMARY 2>&1 || true
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          echo "### 📊 Model Performance Metrics" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f metrics.txt ]; then
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-            cat metrics.txt >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          if pytest tests/ -v --tb=short > test_results.txt 2>&1; then
+            echo "✅ **All tests passed!**" >> report.md
+          else
+            echo "⚠️ **Some tests failed**" >> report.md
           fi
-          echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Pipeline completed at $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> report.md
+          echo "<details><summary>📋 Click to see test details</summary>" >> report.md
+          echo "" >> report.md
+          echo "\`\`\`" >> report.md
+          cat test_results.txt >> report.md
+          echo "\`\`\`" >> report.md
+          echo "</details>" >> report.md
+          echo "" >> report.md
+          
+          echo "### 📊 Model Metrics" >> report.md
+          echo "" >> report.md
+          cat metrics.txt >> report.md
+          echo "" >> report.md
+          
+          echo "---" >> report.md
+          echo "🔄 Pipeline completed at $(date)" >> report.md
+          
+          cml comment create report.md
       
       - name: Upload coverage reports
         if: always()
@@ -128,16 +128,3 @@ jobs:
         with:
           name: coverage-report
           path: htmlcov/
-      
-      - name: Upload model metrics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: model-metrics
-          path: metrics.txt
-      
-      - name: Cleanup credentials
-        if: always()
-        run: |
-          rm -f gcp-key.json
-          echo "✓ Cleaned up credentials"
