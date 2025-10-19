@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ dev ]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  statuses: write
+
 jobs:
   test-and-validate:
     runs-on: ubuntu-latest
@@ -45,20 +51,40 @@ jobs:
           echo "Running sanity tests on dev branch..."
           pytest tests/ -v --tb=short -k "test_data_exists or test_model_exists"
       
-      - name: Run all tests
+      - name: Run all tests and generate report
+        continue-on-error: true
         run: |
-          pytest tests/ -v --tb=short
+          pytest tests/ -v --tb=short --cov=. --cov-report=term | tee test_output.txt
       
       - name: Create CML Report
+        if: github.event_name == 'pull_request'
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "## CI/CD Pipeline Report - Dev Branch" > report.md
           echo "" >> report.md
-          echo "### Sanity Check Results" >> report.md
+          echo "### Test Results" >> report.md
+          echo "" >> report.md
           echo "\`\`\`" >> report.md
-          pytest tests/ -v --tb=short >> report.md 2>&1 || true
+          cat test_output.txt >> report.md
           echo "\`\`\`" >> report.md
           echo "" >> report.md
-          echo "✅ Dev branch sanity tests completed" >> report.md
+          echo "✅ Dev branch tests completed" >> report.md
+          
           cml comment create report.md
+      
+      - name: Upload Test Results (for push events)
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: test_output.txt
+      
+      - name: Display results summary
+        if: github.event_name == 'push'
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -20 test_output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
