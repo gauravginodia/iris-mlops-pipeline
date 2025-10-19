@@ -1,0 +1,11 @@
+# Ignore data files (DVC will handle these)
+/data/*.csv
+/models/*.joblib
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+/tmp/
+
+# But keep DVC tracking files
+!*.dvc
+!.dvc/
