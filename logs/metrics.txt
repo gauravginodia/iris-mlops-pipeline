@@ -1,0 +1,3 @@
+Accuracy: 0.983
+Data: data/iris.csv
+Samples: 150
