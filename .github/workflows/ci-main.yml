@@ -29,46 +29,27 @@ jobs:
           pip install -r requirements-test.txt
           pip install dvc[gs]
       
-      - name: Set up GCP credentials and authenticate
-        env:
-          GCP_B64: ${{ secrets.GCP_CREDENTIALS_B64 }}
-        run: |
-          set -e
-          
-          # Decode and save credentials
-          echo "$GCP_B64" | base64 -d > gcp-key.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp-key.json" >> $GITHUB_ENV
-          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp-key.json
-          
-          echo "✓ Decoded service account key"
-          
-          # Validate JSON
-          python3 -m json.tool gcp-key.json > /dev/null && echo "✓ Valid JSON"
-          
-          # Install Google Cloud CLI
-          echo "Installing Google Cloud CLI..."
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq google-cloud-cli
-          
-          # Authenticate with GCP
-          echo "Authenticating with GCP..."
-          gcloud auth activate-service-account --key-file=gcp-key.json
-          gcloud config set project mlops-466312
-          
-          echo "✓ GCP authentication successful"
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
       
-      - name: Configure and pull DVC data
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+      
+      - name: Configure DVC and pull data
         run: |
           source .venv/bin/activate
           
-          # Verify credentials are set
-          echo "Using credentials: $GOOGLE_APPLICATION_CREDENTIALS"
+          # Create credentials file for DVC
+          echo '${{ secrets.GCP_SA_KEY }}' > gcp-key.json
           
-          # Configure DVC remote
-          echo "Configuring DVC to use GCS credentials..."
+          # Configure DVC to use the credentials
           dvc remote modify gcsremote credentialpath $(pwd)/gcp-key.json
           
-          # Pull data from DVC
+          # Pull data
           echo "Running DVC pull..."
           dvc pull -v
           
@@ -90,7 +71,6 @@ jobs:
           pytest tests/ --cov=src --cov-report=term --cov-report=html
       
       - name: Generate model metrics
-        id: metrics
         run: |
           source .venv/bin/activate
           python -c "
@@ -132,9 +112,11 @@ jobs:
           
           echo "### 📊 Model Performance Metrics" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          cat metrics.txt >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          if [ -f metrics.txt ]; then
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat metrics.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           
           echo "---" >> $GITHUB_STEP_SUMMARY
