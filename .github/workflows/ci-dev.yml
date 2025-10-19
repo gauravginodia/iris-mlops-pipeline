@@ -6,12 +6,6 @@ on:
   pull_request:
     branches: [ dev ]
 
-permissions:
-  contents: read
-  pull-requests: write
-  issues: write
-  statuses: write
-
 jobs:
   test-and-validate:
     runs-on: ubuntu-latest
@@ -26,9 +20,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      
-      - name: Setup CML
-        uses: iterative/setup-cml@v2
       
       - name: Install dependencies
         run: |
@@ -51,40 +42,23 @@ jobs:
           echo "Running sanity tests on dev branch..."
           pytest tests/ -v --tb=short -k "test_data_exists or test_model_exists"
       
-      - name: Run all tests and generate report
-        continue-on-error: true
+      - name: Run all tests with coverage
         run: |
-          pytest tests/ -v --tb=short --cov=. --cov-report=term | tee test_output.txt
+          pytest tests/ -v --tb=short --cov=. --cov-report=term --cov-report=html
       
-      - name: Create CML Report
-        if: github.event_name == 'pull_request'
-        env:
-          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate test summary
+        if: always()
         run: |
-          echo "## CI/CD Pipeline Report - Dev Branch" > report.md
-          echo "" >> report.md
-          echo "### Test Results" >> report.md
-          echo "" >> report.md
-          echo "\`\`\`" >> report.md
-          cat test_output.txt >> report.md
-          echo "\`\`\`" >> report.md
-          echo "" >> report.md
-          echo "✅ Dev branch tests completed" >> report.md
-          
-          cml comment create report.md
+          echo "## 🧪 Test Results - Dev Branch" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Summary" >> $GITHUB_STEP_SUMMARY
+          pytest tests/ --tb=no -q >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Pipeline completed" >> $GITHUB_STEP_SUMMARY
       
-      - name: Upload Test Results (for push events)
-        if: github.event_name == 'push'
+      - name: Upload coverage reports
+        if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: test-results
-          path: test_output.txt
-      
-      - name: Display results summary
-        if: github.event_name == 'push'
-        run: |
-          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          tail -20 test_output.txt >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          name: coverage-report
+          path: htmlcov/
