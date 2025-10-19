@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ dev ]
 
+# Add permissions for GitHub Actions
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   test-and-validate:
     runs-on: ubuntu-latest
@@ -21,6 +27,9 @@ jobs:
         with:
           python-version: '3.10'
       
+      - name: Setup CML
+        uses: iterative/setup-cml@v2
+      
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -32,21 +41,10 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
       
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-      
       - name: Setup DVC
         run: |
-          # Create credentials file for DVC
-          echo '${{ secrets.GCP_SA_KEY }}' > gcp-key.json
-          
-          # Configure DVC remote
-          dvc remote modify gcsremote credentialpath $(pwd)/gcp-key.json
-          
-          # Pull data (continue on failure for dev branch)
-          dvc pull -v || echo "⚠️ DVC pull failed, continuing with existing data..."
+          dvc remote modify gcs_storage projectname ${{ secrets.GCP_PROJECT_ID }}
+          dvc pull data/iris.csv.dvc models/iris_model.joblib.dvc || echo "⚠️ DVC pull failed, continuing..."
       
       - name: Run sanity tests
         run: |
@@ -54,26 +52,37 @@ jobs:
           pytest tests/ -v --tb=short -k "test_data_exists or test_model_exists"
       
       - name: Run all tests
+        id: pytest
         continue-on-error: true
         run: |
           pytest tests/ -v --tb=short --cov=. --cov-report=term
       
-      - name: Generate test summary
+      - name: Create CML Report
         if: always()
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "## 🧪 CI/CD Pipeline Report - Dev Branch" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## CI/CD Pipeline Report - Dev Branch" > report.md
+          echo "" >> report.md
+          echo "### 🧪 Test Results" >> report.md
+          echo "" >> report.md
           
-          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          pytest tests/ --tb=no -q >> $GITHUB_STEP_SUMMARY 2>&1 || true
-          echo "" >> $GITHUB_STEP_SUMMARY
+          if pytest tests/ -v --tb=short > test_results.txt 2>&1; then
+            echo "✅ **All tests passed!**" >> report.md
+          else
+            echo "⚠️ **Some tests failed**" >> report.md
+          fi
           
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Dev branch sanity tests completed at $(date)" >> $GITHUB_STEP_SUMMARY
-      
-      - name: Cleanup credentials
-        if: always()
-        run: |
-          rm -f gcp-key.json
-          echo "✓ Cleaned up credentials"
+          echo "" >> report.md
+          echo "<details><summary>📋 Click to see test details</summary>" >> report.md
+          echo "" >> report.md
+          echo "\`\`\`" >> report.md
+          cat test_results.txt >> report.md
+          echo "\`\`\`" >> report.md
+          echo "</details>" >> report.md
+          echo "" >> report.md
+          
+          echo "---" >> report.md
+          echo "🔄 Dev branch sanity tests completed at $(date)" >> report.md
+          
+          cml comment create report.md
