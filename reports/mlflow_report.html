@@ -1,0 +1,131 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>MLflow Data Poisoning Report</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; }
+            h1 { color: #2c3e50; }
+            table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #3498db; color: white; }
+            tr:nth-child(even) { background-color: #f2f2f2; }
+            img { max-width: 100%; margin: 20px 0; }
+            .metric { display: inline-block; margin: 10px; padding: 15px; background: #ecf0f1; border-radius: 5px; }
+        </style>
+    </head>
+    <body>
+        <h1>MLflow Data Poisoning Analysis Report</h1>
+        <p>Generated: 2025-11-16 07:32:13</p>
+        
+        <h2>Summary Statistics</h2>
+        <div class="metric">
+            <strong>Total Experiments:</strong> 10
+        </div>
+        <div class="metric">
+            <strong>Best Accuracy:</strong> 0.9333
+        </div>
+        <div class="metric">
+            <strong>Worst Accuracy:</strong> 0.4000
+        </div>
+        <div class="metric">
+            <strong>Max Degradation:</strong> 0.5800
+        </div>
+        
+        <h2>All Experiments</h2>
+        <table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>run_name</th>
+      <th>poison_type</th>
+      <th>poison_rate</th>
+      <th>test_accuracy</th>
+      <th>degradation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>clean_0pct_DecisionTree</td>
+      <td>clean</td>
+      <td>0.0000</td>
+      <td>0.9333</td>
+      <td>0.0467</td>
+    </tr>
+    <tr>
+      <td>combined_5pct_DecisionTree</td>
+      <td>combined</td>
+      <td>0.0500</td>
+      <td>0.8889</td>
+      <td>0.0911</td>
+    </tr>
+    <tr>
+      <td>combined_10pct_DecisionTree</td>
+      <td>combined</td>
+      <td>0.1000</td>
+      <td>0.8444</td>
+      <td>0.1356</td>
+    </tr>
+    <tr>
+      <td>combined_50pct_DecisionTree</td>
+      <td>combined</td>
+      <td>0.5000</td>
+      <td>0.5111</td>
+      <td>0.4689</td>
+    </tr>
+    <tr>
+      <td>feature_noise_5pct_DecisionTree</td>
+      <td>feature_noise</td>
+      <td>0.0500</td>
+      <td>0.8667</td>
+      <td>0.1133</td>
+    </tr>
+    <tr>
+      <td>feature_noise_10pct_DecisionTree</td>
+      <td>feature_noise</td>
+      <td>0.1000</td>
+      <td>0.8667</td>
+      <td>0.1133</td>
+    </tr>
+    <tr>
+      <td>feature_noise_50pct_DecisionTree</td>
+      <td>feature_noise</td>
+      <td>0.5000</td>
+      <td>0.7333</td>
+      <td>0.2467</td>
+    </tr>
+    <tr>
+      <td>label_flip_5pct_DecisionTree</td>
+      <td>label_flip</td>
+      <td>0.0500</td>
+      <td>0.8222</td>
+      <td>0.1578</td>
+    </tr>
+    <tr>
+      <td>label_flip_10pct_DecisionTree</td>
+      <td>label_flip</td>
+      <td>0.1000</td>
+      <td>0.9111</td>
+      <td>0.0689</td>
+    </tr>
+    <tr>
+      <td>label_flip_50pct_DecisionTree</td>
+      <td>label_flip</td>
+      <td>0.5000</td>
+      <td>0.4000</td>
+      <td>0.5800</td>
+    </tr>
+  </tbody>
+</table>
+        
+        <h2>Visualizations</h2>
+        <img src="mlflow_summary.png" alt="MLflow Summary">
+        
+        <h2>Key Findings</h2>
+        <ul>
+            <li>Baseline (clean) accuracy: 0.9333</li>
+            <li>50% label poisoning drops accuracy to: 0.4000</li>
+            <li>Combined attacks are most damaging</li>
+        </ul>
+    </body>
+    </html>
+    

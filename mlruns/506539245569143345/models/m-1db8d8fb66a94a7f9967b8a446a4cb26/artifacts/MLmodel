@@ -1,0 +1,22 @@
+artifact_path: /home/jupyter/iris-dvc-project/mlruns/506539245569143345/models/m-1db8d8fb66a94a7f9967b8a446a4cb26/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.10.18
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.7.2
+mlflow_version: 3.5.1
+model_id: m-1db8d8fb66a94a7f9967b8a446a4cb26
+model_size_bytes: 5267
+model_uuid: m-1db8d8fb66a94a7f9967b8a446a4cb26
+prompts: null
+run_id: 255a9acab89347afb1d594063eb94fff
+utc_time_created: '2025-11-16 06:49:25.329755'

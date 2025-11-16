@@ -1,0 +1,14 @@
+artifact_uri: /home/jupyter/iris-dvc-project/mlruns/506539245569143345/c0560c456069409f8db33b3536fe4e3a/artifacts
+end_time: 1763275754816
+entry_point_name: ''
+experiment_id: '506539245569143345'
+lifecycle_stage: active
+run_id: c0560c456069409f8db33b3536fe4e3a
+run_name: feature_noise_10pct_DecisionTree
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763275751602
+status: 3
+tags: []
+user_id: jupyter

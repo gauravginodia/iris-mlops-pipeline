@@ -1,0 +1,10 @@
+artifact_location: /home/jupyter/iris-dvc-project/mlruns/506539245569143345/models/m-0e31502fa43b4fc19d1d38ba903cba70/artifacts
+creation_timestamp: 1763275735466
+experiment_id: '506539245569143345'
+last_updated_timestamp: 1763275738729
+model_id: m-0e31502fa43b4fc19d1d38ba903cba70
+model_type: null
+name: model
+source_run_id: 3b0b6c65c7b84ef2bf5d4ded3ee6316d
+status: 2
+status_message: null

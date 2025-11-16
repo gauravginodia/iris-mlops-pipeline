@@ -1,0 +1,14 @@
+artifact_uri: /home/jupyter/iris-dvc-project/mlruns/506539245569143345/255a9acab89347afb1d594063eb94fff/artifacts
+end_time: 1763275768422
+entry_point_name: ''
+experiment_id: '506539245569143345'
+lifecycle_stage: active
+run_id: 255a9acab89347afb1d594063eb94fff
+run_name: combined_50pct_DecisionTree
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763275765269
+status: 3
+tags: []
+user_id: jupyter

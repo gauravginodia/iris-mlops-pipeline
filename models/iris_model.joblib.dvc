@@ -1,5 +1,0 @@
-outs:
-- md5: 1e1628f68abe0641be2f550802aed685
-  size: 2385
-  hash: md5
-  path: iris_model.joblib
