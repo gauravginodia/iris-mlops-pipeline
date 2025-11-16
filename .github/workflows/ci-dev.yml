@@ -1,0 +1,88 @@
+name: CI - Dev Branch
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev ]
+
+# Add permissions for GitHub Actions
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  test-and-validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Setup CML
+        uses: iterative/setup-cml@v2
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+          pip install dvc[gs]
+      
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Setup DVC
+        run: |
+          dvc remote modify gcs_storage projectname ${{ secrets.GCP_PROJECT_ID }}
+          dvc pull data/iris.csv.dvc models/iris_model.joblib.dvc || echo "⚠️ DVC pull failed, continuing..."
+      
+      - name: Run sanity tests
+        run: |
+          echo "Running sanity tests on dev branch..."
+          pytest tests/ -v --tb=short -k "test_data_exists or test_model_exists"
+      
+      - name: Run all tests
+        id: pytest
+        continue-on-error: true
+        run: |
+          pytest tests/ -v --tb=short --cov=. --cov-report=term
+      
+      - name: Create CML Report
+        if: always()
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## CI/CD Pipeline Report - Dev Branch" > report.md
+          echo "" >> report.md
+          echo "### 🧪 Test Results" >> report.md
+          echo "" >> report.md
+          
+          if pytest tests/ -v --tb=short > test_results.txt 2>&1; then
+            echo "✅ **All tests passed!**" >> report.md
+          else
+            echo "⚠️ **Some tests failed**" >> report.md
+          fi
+          
+          echo "" >> report.md
+          echo "<details><summary>📋 Click to see test details</summary>" >> report.md
+          echo "" >> report.md
+          echo "\`\`\`" >> report.md
+          cat test_results.txt >> report.md
+          echo "\`\`\`" >> report.md
+          echo "</details>" >> report.md
+          echo "" >> report.md
+          
+          echo "---" >> report.md
+          echo "🔄 Dev branch sanity tests completed at $(date)" >> report.md
+          
+          cml comment create report.md

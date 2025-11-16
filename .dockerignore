@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Testing
+.pytest_cache/
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Data (don't include in image)
+data/
+mlruns/
+mlartifacts/
+feast_repo/
+reports/
+
+# DVC
+.dvc/
+
+# GitHub
+.github/
+
+# Documentation
+*.md
+

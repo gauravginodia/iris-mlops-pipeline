@@ -1,0 +1,14 @@
+artifact_uri: file:///home/jupyter/iris-dvc-project/mlruns/782699082703093919/2d5138ff7faa4f20b6a7457976e53a0b/artifacts
+end_time: 1762100609669
+entry_point_name: ''
+experiment_id: '782699082703093919'
+lifecycle_stage: active
+run_id: 2d5138ff7faa4f20b6a7457976e53a0b
+run_name: depth4_split10_leaf5
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1762100605937
+status: 3
+tags: []
+user_id: jupyter

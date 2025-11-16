@@ -1,0 +1,130 @@
+name: CI - Main Branch
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Add permissions for GitHub Actions
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  test-and-validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Setup CML
+        uses: iterative/setup-cml@v2
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+          pip install dvc[gs]
+      
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Setup DVC
+        run: |
+          dvc remote modify gcs_storage projectname ${{ secrets.GCP_PROJECT_ID }}
+          dvc pull data/iris.csv.dvc models/iris_model.joblib.dvc
+      
+      - name: Run data validation tests
+        run: |
+          pytest tests/test_data_validation.py -v --tb=short
+      
+      - name: Run model evaluation tests
+        run: |
+          pytest tests/test_model_evaluation.py -v --tb=short
+      
+      - name: Generate test coverage report
+        run: |
+          pytest tests/ --cov=src --cov-report=term --cov-report=html
+      
+      - name: Generate model metrics
+        id: metrics
+        run: |
+          python -c "
+          import pandas as pd
+          import joblib
+          from sklearn.model_selection import train_test_split
+          from sklearn import metrics
+          
+          data = pd.read_csv('data/iris.csv')
+          _, test = train_test_split(data, test_size=0.4, stratify=data['species'], random_state=42)
+          X_test = test[['sepal_length', 'sepal_width', 'petal_length', 'petal_width']]
+          y_test = test['species']
+          
+          model = joblib.load('models/iris_model.joblib')
+          predictions = model.predict(X_test)
+          
+          accuracy = metrics.accuracy_score(y_test, predictions)
+          precision = metrics.precision_score(y_test, predictions, average='weighted')
+          recall = metrics.recall_score(y_test, predictions, average='weighted')
+          f1 = metrics.f1_score(y_test, predictions, average='weighted')
+          
+          print(f'- Accuracy: {accuracy:.4f}')
+          print(f'- Precision: {precision:.4f}')
+          print(f'- Recall: {recall:.4f}')
+          print(f'- F1 Score: {f1:.4f}')
+          " > metrics.txt
+          cat metrics.txt
+      
+      - name: Create CML Report
+        if: always()
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## CI/CD Pipeline Report - Main Branch" > report.md
+          echo "" >> report.md
+          echo "### 🧪 Test Results" >> report.md
+          echo "" >> report.md
+          
+          if pytest tests/ -v --tb=short > test_results.txt 2>&1; then
+            echo "✅ **All tests passed!**" >> report.md
+          else
+            echo "⚠️ **Some tests failed**" >> report.md
+          fi
+          
+          echo "" >> report.md
+          echo "<details><summary>📋 Click to see test details</summary>" >> report.md
+          echo "" >> report.md
+          echo "\`\`\`" >> report.md
+          cat test_results.txt >> report.md
+          echo "\`\`\`" >> report.md
+          echo "</details>" >> report.md
+          echo "" >> report.md
+          
+          echo "### 📊 Model Metrics" >> report.md
+          echo "" >> report.md
+          cat metrics.txt >> report.md
+          echo "" >> report.md
+          
+          echo "---" >> report.md
+          echo "🔄 Pipeline completed at $(date)" >> report.md
+          
+          cml comment create report.md
+      
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/

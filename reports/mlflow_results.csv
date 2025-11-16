@@ -1,0 +1,6 @@
+Experiment,Run Name,Accuracy,max_depth,min_samples_split,min_samples_leaf
+Shallow Tree,depth3_split2_leaf1,0.9833,3,2,1
+Constrained,depth5_split5_leaf2,0.9833,5,5,2
+Medium Tree,depth5_split2_leaf1,0.9667,5,2,1
+Deep Tree,depth7_split2_leaf1,0.9667,7,2,1
+Very Constrained,depth4_split10_leaf5,0.9167,4,10,5

@@ -1,0 +1,15 @@
+creation_timestamp: 1761739015652
+current_stage: None
+deployment_job_state: null
+description: null
+last_updated_timestamp: 1761739015652
+model_id: m-f9b28f8d3a6245c08fc6f08dcb2e4518
+name: iris-classifier
+run_id: 626372c41fb94052b991a971c39bc8f0
+run_link: null
+source: models:/m-f9b28f8d3a6245c08fc6f08dcb2e4518
+status: READY
+status_message: null
+storage_location: file:///home/jupyter/iris-dvc-project/mlruns/782699082703093919/models/m-f9b28f8d3a6245c08fc6f08dcb2e4518/artifacts
+user_id: null
+version: 2
